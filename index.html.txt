@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChefIA - Tu Asistente Culinario Inteligente</title>
+  
+  <!-- Google Fonts: Playfair Display + Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              orange: '#FF6B35',
+              dark: '#2D2A26',
+              bg: '#FBF9F5',
+              card: '#FFFFFF',
+              border: '#EBE7DF',
+              muted: '#8C8880',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel Standalone para JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      background-color: #FBF9F5;
+      color: #2D2A26;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #E5E1DA;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="selection:bg-[#FF6B35] selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- BASE DE DATOS DE RECETAS INTELIGENTES (CLIENTE) ---
+    const RECIPE_TEMPLATES = [
+      {
+        title: "Salmón Crujiente con Espárragos y Crema de Limón",
+        description: "Salmón a la plancha con piel dorada acompañado de espárragos trigueros al dente y una emulsión sedosa de cítricos.",
+        prepTime: "10 min",
+        cookTime: "15 min",
+        servings: 2,
+        difficulty: "Fácil",
+        calories: "480 kcal",
+        nutrition: { proteins: "38g", carbs: "12g", fats: "28g", fiber: "4g" },
+        ingredients: [
+          { name: "Lomos de salmón fresco", amount: "2 unidades (300g)", icon: "🐟" },
+          { name: "Espárragos trigueros", amount: "1 manojo", icon: "🌱" },
+          { name: "Aceite de oliva virgen extra", amount: "2 cucharadas", icon: "🫒" },
+          { name: "Limón (zumo y ralladura)", amount: "1 unidad", icon: "🍋" },
+          { name: "Ajo picado", amount: "2 dientes", icon: "🧄" },
+          { name: "Sal marina y pimienta negra", amount: "Al gusto", icon: "🧂" }
+        ],
+        steps: [
+          {
+            title: "Preparación de los espárragos y salmón",
+            instruction: "Lava los espárragos y corta la parte leñosa del tallo. Seca bien los lomos de salmón con papel de cocina y salpimienta ambos lados.",
+            timerMinutes: 2
+          },
+          {
+            title: "Salteado de espárragos",
+            instruction: "Calienta 1 cucharada de AOVE en la sartén a fuego medio-alto. Añade el ajo picado y los espárragos. Saltea durante 5 minutos hasta que estén tiernos pero crujientes. Reserva en un plato.",
+            timerMinutes: 5
+          },
+          {
+            title: "Cocción del salmón crujiente",
+            instruction: "En la misma sartén bien caliente, coloca el salmón con la piel hacia abajo. Cocina durante 4-5 minutos sin mover para que quede crujiente. Da la vuelta y cocina 3 minutos más.",
+            timerMinutes: 5
+          },
+          {
+            title: "Emulsión cítrica y emplatado",
+            instruction: "Baja el fuego al mínimo, añade el zumo de limón y la ralladura a la sartén junto con el jugo restante. Emplata los espárragos de base, coloca el salmón encima y salsea generosamente.",
+            timerMinutes: 1
+          }
+        ],
+        tips: ["Para una piel extra crujiente, asegúrate de que el salmón esté completamente seco antes de ponerlo en la sartén."]
+      },
+      {
+        title: "Wok Thai de Pollo, Verduras y Salsa de Soja y Sésamo",
+        description: "Salteado express aromático al estilo oriental con tiras de pollo jugosas, verduras de temporada y crujiente toque de cacahuetes.",
+        prepTime: "15 min",
+        cookTime: "12 min",
+        servings: 2,
+        difficulty: "Fácil",
+        calories: "410 kcal",
+        nutrition: { proteins: "34g", carbs: "22g", fats: "16g", fiber: "6g" },
+        ingredients: [
+          { name: "Pechuga de pollo en tiras", amount: "300g", icon: "🍗" },
+          { name: "Pimiento rojo y calabacín", amount: "1 unidad de cada", icon: "🫑" },
+          { name: "Cebolla morada", amount: "1/2 unidad", icon: "🧅" },
+          { name: "Salsa de soja baja en sal", amount: "3 cucharadas", icon: "🥢" },
+          { name: "Aceite de sésamo u oliva", amount: "1 cucharada", icon: "🫒" },
+          { name: "Semillas de sésamo y jengibre", amount: "1 cucharadita", icon: "🫚" }
+        ],
+        steps: [
+          {
+            title: "Corte y marinado rápido",
+            instruction: "Corta el pollo y las verduras en juliana uniforme. Mezcla el pollo con 1 cucharada de soja y el jengibre rallado.",
+            timerMinutes: 3
+          },
+          {
+            title: "Sellado del pollo a fuego vivo",
+            instruction: "Calienta el wok o sartén amplia con el aceite a fuego alto. Añade el pollo y saltea durante 4 minutos hasta dorar.",
+            timerMinutes: 4
+          },
+          {
+            title: "Incorporación de vegetales",
+            instruction: "Añade la cebolla, el pimiento y el calabacín. Saltea a fuego vivo durante 4-5 minutos manteniendo las verduras al dente.",
+            timerMinutes: 5
+          },
+          {
+            title: "Toque final y glaseado",
+            instruction: "Vierte el resto de salsa de soja, mezcla durante 1 minuto para integrar y espolvorea con semillas de sésamo tostadas antes de servir.",
+            timerMinutes: 1
+          }
+        ],
+        tips: ["No amontones los ingredientes en la sartén para que se salteen y no se cuezan."]
+      },
+      {
+        title: "Pasta Cremosa con Setas Silvestres, Parmesano y Trufa",
+        description: "Plato reconfortante italiano con pasta al dente envuelta en un salteado de setas, toque de ajo y lascas de queso curado.",
+        prepTime: "10 min",
+        cookTime: "15 min",
+        servings: 2,
+        difficulty: "Fácil",
+        calories: "520 kcal",
+        nutrition: { proteins: "18g", carbs: "68g", fats: "20g", fiber: "5g" },
+        ingredients: [
+          { name: "Pasta (Fettuccine o Penne)", amount: "200g", icon: "🍝" },
+          { name: "Setas variadas o champiñones", amount: "250g", icon: "🍄" },
+          { name: "Queso Parmesano rallado", amount: "50g", icon: "🧀" },
+          { name: "Nata para cocinar o bebida vegetal", amount: "100ml", icon: "🥛" },
+          { name: "Dientes de ajo y perejil fresco", amount: "2 dientes", icon: "🧄" },
+          { name: "Aceite de oliva virgen extra", amount: "2 cucharadas", icon: "🫒" }
+        ],
+        steps: [
+          {
+            title: "Cocción de la pasta",
+            instruction: "Hierve abundante agua con sal. Cuece la pasta según el paquete hasta que esté al dente (aprox. 8-10 min). Guarda 1/2 vaso de agua de cocción antes de escurrir.",
+            timerMinutes: 9
+          },
+          {
+            title: "Salteado de setas con ajo",
+            instruction: "Limpia y lamina las setas. En una sartén amplia, calienta el AOVE y dora los ajos picados. Añade las setas y cocina a fuego medio-alto durante 6 minutos hasta que pierdan su agua.",
+            timerMinutes: 6
+          },
+          {
+            title: "Creación de la salsa cremosa",
+            instruction: "Añade la nata y un chorrito del agua reservada de la pasta. Deja reducir a fuego lento durante 2 minutos hasta espesar ligeramente.",
+            timerMinutes: 2
+          },
+          {
+            title: "Mantecatura y emplatado",
+            instruction: "Agrega la pasta escurrida a la sartén junto con la mitad del parmesano. Remueve enérgicamente durante 1 minuto y sirve con perejil fresco picado y más queso por encima.",
+            timerMinutes: 1
+          }
+        ],
+        tips: ["El agua de cocción con almidón es el secreto para lograr una salsa sedosa y brillante sin apelmazar."]
+      }
+    ];
+
+    // --- COMPONENTE PRINCIPAL ---
+    function App() {
+      // Estado de Usuario & Límites
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [userTier, setUserTier] = useState("free"); // "free" | "premium"
+      const [recipesToday, setRecipesToday] = useState(0);
+      const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+      
+      // Estado de Receta & Cocina
+      const [ingredientsInput, setIngredientsInput] = useState("");
+      const [selectedCategory, setSelectedCategory] = useState("Cualquiera");
+      const [selectedTime, setSelectedTime] = useState("Rápido (< 20 min)");
+      const [currentRecipe, setCurrentRecipe] = useState(null);
+      const [isGenerating, setIsGenerating] = useState(false);
+      const [cookingStepIndex, setCookingStepIndex] = useState(null); // Modo paso a paso
+      const [activeTimer, setActiveTimer] = useState(null); // { secondsLeft, isRunning }
+      
+      // Recetas Guardadas
+      const [savedRecipes, setSavedRecipes] = useState([]);
+      const [isSavedDrawerOpen, setIsSavedDrawerOpen] = useState(false);
+
+      // Puerta Secreta Admin
+      const [adminTapCount, setAdminTapCount] = useState([]);
+      const [showSecretModal, setShowSecretModal] = useState(false);
+      const [secretInputKey, setSecretInputKey] = useState("");
+      const [secretError, setSecretError] = useState(null);
+      const [showAdminToast, setShowAdminToast] = useState(false);
+
+      // Carga inicial y persistencia
+      useEffect(() => {
+        try {
+          const savedAdmin = localStorage.getItem("chefia_admin_key") === "true";
+          setIsAdmin(savedAdmin);
+
+          const savedCount = parseInt(localStorage.getItem("chefia_recipes_count") || "0", 10);
+          const savedDate = localStorage.getItem("chefia_recipes_date");
+          const todayStr = new Date().toDateString();
+
+          if (savedDate === todayStr) {
+            setRecipesToday(savedCount);
+          } else {
+            localStorage.setItem("chefia_recipes_date", todayStr);
+            localStorage.setItem("chefia_recipes_count", "0");
+            setRecipesToday(0);
+          }
+
+          const stored = localStorage.getItem("chefia_saved_recipes");
+          if (stored) setSavedRecipes(JSON.parse(stored));
+        } catch (e) {
+          console.error("Storage error:", e);
+        }
+      }, []);
+
+      // Temporizador del Modo Cocina
+      useEffect(() => {
+        let interval = null;
+        if (activeTimer && activeTimer.isRunning && activeTimer.secondsLeft > 0) {
+          interval = setInterval(() => {
+            setActiveTimer(prev => ({
+              ...prev,
+              secondsLeft: prev.secondsLeft - 1
+            }));
+          }, 1000);
+        } else if (activeTimer && activeTimer.secondsLeft === 0) {
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }
+        return () => clearInterval(interval);
+      }, [activeTimer]);
+
+      // Gesto Secreto: 3 toques en logo "C"
+      const handleLogoClick = () => {
+        const now = Date.now();
+        const recent = [...adminTapCount.filter(t => now - t < 1500), now];
+        setAdminTapCount(recent);
+
+        if (recent.length >= 3) {
+          setAdminTapCount([]);
+          setSecretInputKey("");
+          setSecretError(null);
+          setShowSecretModal(true);
+        }
+      };
+
+      // Validación de clave Admin "Unai7227"
+      const handleSecretSubmit = (e) => {
+        e.preventDefault();
+        if (secretInputKey === "Unai7227") {
+          localStorage.setItem("chefia_admin_key", "true");
+          setIsAdmin(true);
+          setIsPaywallOpen(false);
+          setShowSecretModal(false);
+          setShowAdminToast(true);
+          setTimeout(() => setShowAdminToast(false), 4000);
+        } else {
+          setSecretError("Clave incorrecta");
+        }
+      };
+
+      // Generación de Receta
+      const handleGenerateRecipe = (customPromptText) => {
+        const isUnlimited = isAdmin || userTier === "premium";
+        
+        // Bloqueo de Paywall para usuarios gratuitos (1 receta al día)
+        if (!isUnlimited && recipesToday >= 1) {
+          setIsPaywallOpen(true);
+          return;
+        }
+
+        setIsGenerating(true);
+        setCookingStepIndex(null);
+        setActiveTimer(null);
+
+        setTimeout(() => {
+          // Seleccionar plantilla inteligente o adaptar según ingredientes
+          let chosen = RECIPE_TEMPLATES[Math.floor(Math.random() * RECIPE_TEMPLATES.length)];
+          const input = customPromptText || ingredientsInput;
+          
+          if (input.toLowerCase().includes("pollo")) chosen = RECIPE_TEMPLATES[1];
+          else if (input.toLowerCase().includes("pasta") || input.toLowerCase().includes("champiñon")) chosen = RECIPE_TEMPLATES[2];
+          else if (input.toLowerCase().includes("salmon") || input.toLowerCase().includes("pescado")) chosen = RECIPE_TEMPLATES[0];
+
+          // Adaptar nombre si hay ingredientes custom
+          let finalRecipe = { ...chosen, id: Date.now().toString() };
+          if (input.trim().length > 0 && !customPromptText) {
+            finalRecipe.description = `Receta diseñada a medida aprovechando: ${input.trim()}.`;
+          }
+
+          setCurrentRecipe(finalRecipe);
+          setIsGenerating(false);
+
+          // Actualizar contador diario
+          if (!isUnlimited) {
+            const nextCount = recipesToday + 1;
+            setRecipesToday(nextCount);
+            localStorage.setItem("chefia_recipes_count", nextCount.toString());
+            localStorage.setItem("chefia_recipes_date", new Date().toDateString());
+          }
+        }, 1200);
+      };
+
+      // Guardar / Quitar Favoritos
+      const toggleSaveRecipe = (recipe) => {
+        let updated;
+        const exists = savedRecipes.some(r => r.title === recipe.title);
+        if (exists) {
+          updated = savedRecipes.filter(r => r.title !== recipe.title);
+        } else {
+          updated = [recipe, ...savedRecipes];
+        }
+        setSavedRecipes(updated);
+        localStorage.setItem("chefia_saved_recipes", JSON.stringify(updated));
+      };
+
+      // Desbloquear Pro
+      const handleUnlockPro = () => {
+        setUserTier("premium");
+        setIsPaywallOpen(false);
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col justify-between">
+          {/* HEADER DE LA APLICACIÓN */}
+          <header className="sticky top-0 z-40 bg-[#FCFAF7]/95 backdrop-blur-md border-b border-[#EBE7DF]">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+              {/* Logo con Gesto Secreto */}
+              <div 
+                onClick={handleLogoClick}
+                className="flex items-center gap-3 cursor-pointer select-none group"
+                title="ChefIA"
+              >
+                <div className="w-9 h-9 bg-[#FF6B35] rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-md group-hover:scale-105 group-active:scale-95 transition-transform">
+                  C
+                </div>
+                <div>
+                  <h1 className="font-serif font-extrabold text-xl sm:text-2xl text-[#2D2A26] tracking-tight">
+                    Chef<span className="text-[#FF6B35]">IA</span>
+                  </h1>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-[#8C8880] -mt-1 hidden sm:block">
+                    Asistente Culinario Inteligente
+                  </p>
+                </div>
+              </div>
+
+              {/* Botones de Cabecera */}
+              <div className="flex items-center gap-3 sm:gap-4">
+                {/* Indicador de recetas restantes */}
+                <span className="hidden sm:inline text-xs font-bold text-[#8C8880]">
+                  {isAdmin || userTier === "premium" ? "♾️ Recetas Ilimitadas" : `${Math.max(0, 1 - recipesToday)} receta diaria restante`}
+                </span>
+
+                {/* Botón Guardadas */}
+                <button
+                  onClick={() => setIsSavedDrawerOpen(true)}
+                  className="p-2.5 rounded-full bg-white border border-[#EBE7DF] hover:bg-[#F2EFE9] text-[#2D2A26] transition-colors relative cursor-pointer"
+                  title="Recetas guardadas"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                  {savedRecipes.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF6B35] text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                      {savedRecipes.length}
+                    </span>
+                  )}
+                </button>
+
+                {/* Botón Estado Plan */}
+                <button
+                  onClick={() => { if (!isAdmin) setIsPaywallOpen(true); }}
+                  className={`px-4 py-2 rounded-full text-xs font-black tracking-wide transition-all cursor-pointer ${
+                    isAdmin
+                      ? "bg-emerald-800 text-white"
+                      : userTier === "premium"
+                      ? "bg-[#FF6B35] text-white shadow-sm"
+                      : "bg-[#2D2A26] text-white hover:bg-[#FF6B35]"
+                  }`}
+                >
+                  {isAdmin ? "ADMIN ILIMITADO" : userTier === "premium" ? "CHEF PRO" : "PASAR A PRO (2,99€)"}
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* CUERPO PRINCIPAL */}
+          <main className="max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12 flex-1">
+            {!currentRecipe ? (
+              /* VISTA 1: GENERADOR DE RECETAS */
+              <div className="space-y-8 animate-fade-in">
+                {/* Hero */}
+                <div className="text-center space-y-3 max-w-2xl mx-auto">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] text-xs font-bold tracking-wide">
+                    ✨ Generación inteligente de recetas
+                  </span>
+                  <h2 className="font-serif font-extrabold text-3xl sm:text-5xl text-[#2D2A26] tracking-tight leading-tight">
+                    ¿Qué ingredientes tienes hoy en tu nevera?
+                  </h2>
+                  <p className="text-[#8C8880] text-sm sm:text-base leading-relaxed">
+                    Escribe lo que tengas a mano y la IA creará una receta gourmet paso a paso evitando el desperdicio.
+                  </p>
+                </div>
+
+                {/* Card de Entrada */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-black/5 border border-[#EBE7DF] space-y-6">
+                  {/* Textarea */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-[#8C8880] mb-2">
+                      Tus ingredientes disponibles
+                    </label>
+                    <textarea
+                      rows="3"
+                      value={ingredientsInput}
+                      onChange={(e) => setIngredientsInput(e.target.value)}
+                      placeholder="Ej: 2 pechugas de pollo, medio pimiento rojo, arroz, un bote de nata y cebolla..."
+                      className="w-full p-4 rounded-2xl bg-[#FBF9F5] border border-[#EBE7DF] text-sm text-[#2D2A26] placeholder-[#8C8880]/60 focus:outline-none focus:ring-2 focus:ring-[#FF6B35] transition-all resize-none"
+                    />
+                  </div>
+
+                  {/* Opciones rápidas */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#8C8880] mb-2">
+                        Tipo de plato
+                      </label>
+                      <select 
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full p-3 rounded-xl bg-[#FBF9F5] border border-[#EBE7DF] text-xs font-semibold text-[#2D2A26] focus:outline-none focus:ring-1 focus:ring-[#FF6B35]"
+                      >
+                        <option>Cualquiera</option>
+                        <option>Almuerzo nutritivo</option>
+                        <option>Cena ligera</option>
+                        <option>Vegetariano / Vegano</option>
+                        <option>Alto en proteínas (Fitness)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-[#8C8880] mb-2">
+                        Tiempo disponible
+                      </label>
+                      <select 
+                        value={selectedTime}
+                        onChange={(e) => setSelectedTime(e.target.value)}
+                        className="w-full p-3 rounded-xl bg-[#FBF9F5] border border-[#EBE7DF] text-xs font-semibold text-[#2D2A26] focus:outline-none focus:ring-1 focus:ring-[#FF6B35]"
+                      >
+                        <option>Rápido (&lt; 20 min)</option>
+                        <option>Medio (20 - 40 min)</option>
+                        <option>Elaborado (&gt; 40 min)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Botón Generar */}
+                  <button
+                    onClick={() => handleGenerateRecipe()}
+                    disabled={isGenerating}
+                    className="w-full py-4 px-6 rounded-2xl bg-[#FF6B35] hover:bg-[#e05623] active:scale-[0.99] text-white font-extrabold text-base shadow-lg shadow-[#FF6B35]/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                        <span>Creando tu receta personalizada...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🍳 Generar Receta con IA</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Ideas Rápidas */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#8C8880] text-center">
+                    O prueba con una idea rápida:
+                  </h3>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {[
+                      "Salmón fresco con espárragos",
+                      "Wok de pollo con verduras",
+                      "Pasta cremosa con setas",
+                      "Cena ligera en 15 minutos"
+                    ].map((idea, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setIngredientsInput(idea);
+                          handleGenerateRecipe(idea);
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-white border border-[#EBE7DF] text-xs font-semibold text-[#2D2A26] hover:border-[#FF6B35] hover:text-[#FF6B35] transition-all cursor-pointer shadow-xs"
+                      >
+                        ⚡ {idea}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* VISTA 2: DETALLE DE LA RECETA GENERADA */
+              <div className="space-y-6 animate-fade-in">
+                {/* Barra Superior con botón Volver y Guardar */}
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => { setCurrentRecipe(null); setCookingStepIndex(null); }}
+                    className="flex items-center gap-1.5 text-xs font-bold text-[#8C8880] hover:text-[#2D2A26] cursor-pointer"
+                  >
+                    ← Crear otra receta
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleSaveRecipe(currentRecipe)}
+                      className="px-3.5 py-1.5 rounded-full bg-white border border-[#EBE7DF] text-xs font-bold flex items-center gap-1.5 hover:bg-[#F2EFE9] transition-colors cursor-pointer"
+                    >
+                      <span>{savedRecipes.some(r => r.title === currentRecipe.title) ? "❤️ Guardada" : "🤍 Guardar"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tarjeta Principal de la Receta */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-black/5 border border-[#EBE7DF] space-y-6">
+                  {/* Cabecera */}
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="px-2.5 py-1 rounded-lg bg-[#FF6B35]/10 text-[#FF6B35] text-xs font-black uppercase tracking-wider">
+                        {currentRecipe.difficulty}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg bg-[#FBF9F5] border border-[#EBE7DF] text-xs font-bold text-[#8C8880]">
+                        ⏱️ {currentRecipe.cookTime} cocción
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg bg-[#FBF9F5] border border-[#EBE7DF] text-xs font-bold text-[#8C8880]">
+                        🔥 {currentRecipe.calories}
+                      </span>
+                    </div>
+                    <h2 className="font-serif font-black text-2xl sm:text-4xl text-[#2D2A26] leading-tight">
+                      {currentRecipe.title}
+                    </h2>
+                    <p className="text-sm text-[#8C8880] mt-2 leading-relaxed">
+                      {currentRecipe.description}
+                    </p>
+                  </div>
+
+                  {/* Desglose Nutricional */}
+                  <div className="grid grid-cols-4 gap-2 p-3 bg-[#FBF9F5] rounded-2xl border border-[#EBE7DF] text-center">
+                    <div>
+                      <span className="block text-[10px] font-bold text-[#8C8880] uppercase">Proteínas</span>
+                      <span className="font-bold text-xs sm:text-sm text-[#2D2A26]">{currentRecipe.nutrition.proteins}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-[#8C8880] uppercase">Carbos</span>
+                      <span className="font-bold text-xs sm:text-sm text-[#2D2A26]">{currentRecipe.nutrition.carbs}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-[#8C8880] uppercase">Grasas</span>
+                      <span className="font-bold text-xs sm:text-sm text-[#2D2A26]">{currentRecipe.nutrition.fats}</span>
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-[#8C8880] uppercase">Fibra</span>
+                      <span className="font-bold text-xs sm:text-sm text-[#2D2A26]">{currentRecipe.nutrition.fiber}</span>
+                    </div>
+                  </div>
+
+                  {/* Ingredientes */}
+                  <div>
+                    <h3 className="font-serif font-bold text-lg text-[#2D2A26] mb-3">
+                      Ingredientes necesarios ({currentRecipe.servings} raciones)
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {currentRecipe.ingredients.map((ing, i) => (
+                        <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl bg-[#FBF9F5] border border-[#EBE7DF]">
+                          <span className="text-xl">{ing.icon}</span>
+                          <div className="text-xs">
+                            <span className="font-bold text-[#2D2A26] block">{ing.name}</span>
+                            <span className="text-[#8C8880]">{ing.amount}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Modo Cocina Paso a Paso */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-serif font-bold text-lg text-[#2D2A26]">
+                        Paso a Paso
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setCookingStepIndex(0);
+                          const initialMinutes = currentRecipe.steps[0].timerMinutes || 3;
+                          setActiveTimer({ secondsLeft: initialMinutes * 60, isRunning: false });
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-[#FF6B35] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm hover:bg-[#e05623] cursor-pointer"
+                      >
+                        ▶️ Iniciar Modo Cocina
+                      </button>
+                    </div>
+
+                    {/* Lista de Pasos */}
+                    <div className="space-y-3">
+                      {currentRecipe.steps.map((step, idx) => (
+                        <div 
+                          key={idx}
+                          className={`p-4 rounded-2xl border transition-all ${
+                            cookingStepIndex === idx
+                              ? "bg-amber-500/5 border-[#FF6B35] shadow-sm"
+                              : "bg-white border-[#EBE7DF]"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-[#2D2A26] text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                              {idx + 1}
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <h4 className="font-bold text-xs sm:text-sm text-[#2D2A26]">{step.title}</h4>
+                              <p className="text-xs sm:text-sm text-[#8C8880] leading-relaxed">{step.instruction}</p>
+                              
+                              {/* Temporizador específico del paso */}
+                              {cookingStepIndex === idx && (
+                                <div className="pt-3 flex items-center gap-3">
+                                  <div className="px-3 py-1.5 rounded-xl bg-white border border-[#EBE7DF] font-mono font-bold text-sm text-[#FF6B35]">
+                                    ⏱️ {Math.floor((activeTimer?.secondsLeft || 0) / 60)}:
+                                    {((activeTimer?.secondsLeft || 0) % 60).toString().padStart(2, '0')}
+                                  </div>
+                                  <button
+                                    onClick={() => setActiveTimer(prev => ({ ...prev, isRunning: !prev.isRunning }))}
+                                    className="px-3 py-1.5 rounded-xl bg-[#2D2A26] text-white text-xs font-bold cursor-pointer"
+                                  >
+                                    {activeTimer?.isRunning ? "Pausar" : "Iniciar Temporizador"}
+                                  </button>
+                                  {idx < currentRecipe.steps.length - 1 && (
+                                    <button
+                                      onClick={() => {
+                                        const nextIdx = idx + 1;
+                                        setCookingStepIndex(nextIdx);
+                                        const nextMin = currentRecipe.steps[nextIdx].timerMinutes || 3;
+                                        setActiveTimer({ secondsLeft: nextMin * 60, isRunning: false });
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-[#FF6B35] text-white text-xs font-bold cursor-pointer ml-auto"
+                                    >
+                                      Siguiente Paso →
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* FOOTER */}
+          <footer className="border-t border-[#EBE7DF] bg-white py-6 text-center text-xs text-[#8C8880]">
+            <p>ChefIA © 2026 — Asistente Culinario con Inteligencia Artificial. Todos los derechos reservados.</p>
+          </footer>
+
+          {/* MODAL DE PAGO (PAYWALL 2,99 €/MES) */}
+          {isPaywallOpen && !isAdmin && (
+            <div className="fixed inset-0 z-50 bg-[#2D2A26]/75 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-[#FCFAF7] w-full max-w-lg rounded-3xl shadow-2xl border-2 border-[#EBE7DF] overflow-hidden flex flex-col p-6 space-y-5 animate-fade-in">
+                {/* Cabecera */}
+                <div className="flex items-center justify-between border-b border-[#EBE7DF] pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-[#FF6B35] text-white flex items-center justify-center font-bold">
+                      👑
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#FF6B35]">Límite Diario Alcanzado</span>
+                      <h3 className="font-serif font-black text-xl text-[#2D2A26]">Desbloquea ChefIA Pro</h3>
+                    </div>
+                  </div>
+                  <button onClick={() => setIsPaywallOpen(false)} className="text-[#8C8880] hover:text-[#2D2A26] font-bold p-1 cursor-pointer">✕</button>
+                </div>
+
+                {/* Banner de Aviso */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-[#FF6B35]/15 to-amber-500/15 border-2 border-[#FF6B35] text-[#2D2A26]">
+                  <p className="font-serif font-black text-base leading-snug">
+                    ¡Has alcanzado tu receta gratuita de hoy! Pasa a ChefIA Pro por solo 2,99 €/mes para cocinar sin límites.
+                  </p>
+                  <p className="text-xs text-[#8C8880] mt-1 font-medium">
+                    El contador se reinicia automáticamente cada 24 horas.
+                  </p>
+                </div>
+
+                {/* Ventajas */}
+                <div className="space-y-2">
+                  {[
+                    "Generación ilimitada de recetas personalizadas",
+                    "Modo Cocina Paso a Paso interactivo y temporizadores",
+                    "Información nutricional completa y macros",
+                    "Guardado ilimitado de recetas favoritas",
+                    "Sugerencias de sustitución de ingredientes"
+                  ].map((feat, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-[#2D2A26]">
+                      <span className="text-emerald-600 font-bold">✓</span>
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Botón Principal Paywall */}
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    onClick={handleUnlockPro}
+                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#FF5722] via-[#FF6B35] to-[#FF5722] hover:from-[#E64A19] hover:to-[#E64A19] text-white font-black text-sm shadow-xl shadow-[#FF5722]/30 transition-all uppercase tracking-wide cursor-pointer"
+                  >
+                    DESBLOQUEAR CHEFIA PRO (2,99 €/MES)
+                  </button>
+                  <button
+                    onClick={() => setIsPaywallOpen(false)}
+                    className="py-2.5 text-xs font-bold text-[#8C8880] hover:text-[#2D2A26] transition-colors cursor-pointer"
+                  >
+                    Cerrar aviso
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* MODAL DIÁLOGO SECRETO ADMIN (3 TOQUES EN LOGO "C") */}
+          {showSecretModal && (
+            <div 
+              className="fixed inset-0 z-50 bg-[#2D2A26]/80 backdrop-blur-xs flex items-center justify-center p-4"
+              onClick={() => setShowSecretModal(false)}
+            >
+              <div 
+                className="bg-[#FCFAF7] w-full max-w-sm rounded-3xl shadow-2xl border-2 border-[#EBE7DF] p-6 space-y-4 animate-fade-in"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-[#2D2A26] text-white flex items-center justify-center text-xs">
+                      🔒
+                    </div>
+                    <h3 className="font-serif font-bold text-lg text-[#2D2A26]">Acceso Secreto</h3>
+                  </div>
+                  <button onClick={() => setShowSecretModal(false)} className="text-[#8C8880] font-bold">✕</button>
+                </div>
+
+                <form onSubmit={handleSecretSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#2D2A26] mb-1.5">
+                      Introduce la clave de acceso de administrador:
+                    </label>
+                    <input
+                      type="password"
+                      value={secretInputKey}
+                      onChange={(e) => { setSecretInputKey(e.target.value); setSecretError(null); }}
+                      placeholder="Introduce clave..."
+                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-[#EBE7DF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#FF6B35] font-mono"
+                      autoFocus
+                    />
+                    {secretError && (
+                      <p className="text-xs font-bold text-red-600 mt-1.5">⚠️ {secretError}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowSecretModal(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-[#F2EFE9] text-xs font-bold text-[#8C8880]"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-white text-xs font-bold shadow-md"
+                    >
+                      Aceptar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* TOAST CONFIRMACIÓN MODO ADMIN */}
+          {showAdminToast && (
+            <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-[#2D2A26] text-white px-5 py-3 rounded-full shadow-2xl border-2 border-emerald-400 flex items-center gap-2 text-xs sm:text-sm font-bold animate-bounce">
+              <span className="text-emerald-400">✓</span>
+              <span>¡Modo Administrador Activado!</span>
+            </div>
+          )}
+
+          {/* DRAWER DE RECETAS FAVORITAS */}
+          {isSavedDrawerOpen && (
+            <div 
+              className="fixed inset-0 z-50 bg-[#2D2A26]/60 backdrop-blur-xs flex justify-end"
+              onClick={() => setIsSavedDrawerOpen(false)}
+            >
+              <div 
+                className="bg-[#FCFAF7] w-full max-w-md h-full shadow-2xl border-l border-[#EBE7DF] p-6 flex flex-col justify-between"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div>
+                  <div className="flex items-center justify-between pb-4 border-b border-[#EBE7DF] mb-4">
+                    <h3 className="font-serif font-black text-xl text-[#2D2A26]">Recetas Guardadas ({savedRecipes.length})</h3>
+                    <button onClick={() => setIsSavedDrawerOpen(false)} className="text-[#8C8880] font-bold p-1">✕</button>
+                  </div>
+
+                  {savedRecipes.length === 0 ? (
+                    <div className="text-center py-12 text-sm text-[#8C8880]">
+                      No tienes recetas guardadas todavía. ¡Genera una y dale a guardar!
+                    </div>
+                  ) : (
+                    <div className="space-y-3 overflow-y-auto max-h-[75vh] custom-scrollbar">
+                      {savedRecipes.map((r, i) => (
+                        <div 
+                          key={i}
+                          onClick={() => { setCurrentRecipe(r); setIsSavedDrawerOpen(false); }}
+                          className="p-4 rounded-2xl bg-white border border-[#EBE7DF] hover:border-[#FF6B35] cursor-pointer transition-all shadow-xs"
+                        >
+                          <h4 className="font-serif font-bold text-sm text-[#2D2A26]">{r.title}</h4>
+                          <p className="text-xs text-[#8C8880] mt-1 line-clamp-2">{r.description}</p>
+                          <div className="flex items-center gap-2 mt-2 text-[10px] font-bold text-[#FF6B35]">
+                            <span>⏱️ {r.cookTime}</span>
+                            <span>•</span>
+                            <span>🔥 {r.calories}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setIsSavedDrawerOpen(false)}
+                  className="w-full py-3 rounded-xl bg-[#2D2A26] text-white text-xs font-bold"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Montar la aplicación
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
